@@ -1,0 +1,2 @@
+# KyutechOnCampus
+Googleロケーション履歴から九工大キャンパス出勤時間を抽出します．
