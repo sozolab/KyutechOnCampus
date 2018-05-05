@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset='utf-8'>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script>
+
+
+    $(function(){
+
+
+        var newline ="<br/>"
+
+        //キャンパスの所在地
+        var wakamatsu_lat1  = 33888514*10;
+        var wakamatsu_long1 = 130707122*10;
+        var wakamatsu_lat2  = 33892537*10;
+        var wakamatsu_long2 = 130712135*10;
+
+        var tobata_lat1  = 33890578*10;
+        var tobata_long1 = 130838161*10;
+        var tobata_lat2  = 33895910*10;
+        var tobata_long2 = 130842886*10;
+
+        var reader;
+        var data;
+
+        reader = new FileReader();
+        reader.onload = onLoad;
+
+
+        $('input[type="file"]').on('change', onChange);
+
+        var date = new Date();
+        date.setMonth(date.getMonth()-1);
+        $('[id="year"]').val(date.getFullYear());
+        $('[id="month"]').val(date.getMonth()+1);
+
+        $('#year').on('change', extractJSON);
+        $('#month').on('change', extractJSON);
+
+        //fileが選ばれた時
+        function onChange(event) {
+            reader.readAsText(event.target.files[0]);
+        }
+
+        //fileが読み終わった時．
+        function onLoad(event) {
+            data = JSON.parse(event.target.result);
+            extractJSON();
+        }
+
+
+        //メイン部分
+        function extractJSON(){
+            if (data==null) return;
+
+            //start and end times for each day.
+            var starts = new Array(31);
+            var ends = new Array(31);
+
+            var target_year = $('#year').val();
+            var target_month = $('#month').val();
+
+            console.log(""+target_year + " "+target_month);
+
+            //console.log(data);
+
+            var p = document.getElementById('output');
+
+            var date = new Date(Number(data["locations"][0]["timestampMs"]));
+
+            for (var i in data["locations"]){
+              var date = new Date(Number(data["locations"][i]["timestampMs"]));
+              var year = date.getFullYear();
+              var month = date.getMonth()+1;
+              var day = date.getDate();
+
+              var hour = date.getHours();
+              var min = date.getMinutes();
+
+              var lat  = Number(data["locations"][i]["latitudeE7"]);
+              var long = Number(data["locations"][i]["longitudeE7"]);
+
+              if (month != target_month || year!=target_year) continue;
+
+              //if in a campus
+              if ((lat  > wakamatsu_lat1  && lat < wakamatsu_lat2 &&
+                   long > wakamatsu_long1 && long < wakamatsu_long2) ||
+                  (lat  > tobata_lat1  && lat < tobata_lat2 &&
+                   long > tobata_long1 && long < tobata_long2)) {
+
+                     //output.innerHTML += year + "/" + month + "/" + day + " " + hour + ":" + ('00'+min).slice(-2) + " " + lat + " " + long + " 出勤"+newline;
+
+                     //console.log(i);
+                     if (hour < 4) day -=1;//3時台までは一つ前の日とみなす．
+                     if (day<0) continue; //月はじめは無視．
+
+                     d = day - 1
+                     if (starts[d]==null || starts[d] > date) {
+                       starts[d]=date
+                     }
+
+
+                     if (ends[d]==null || ends[d] < date) {
+                       ends[d]=date
+                     }
+
+              }
+            }
+            //console.log(starts);
+            //console.log(ends);
+
+            var table = document.getElementById('table');
+
+            while( table.rows[ 0 ] ) table.deleteRow( 0 );
+
+            for (var i=0;i<31;i++){
+
+              var date = new Date(target_year,target_month-1,i+1);
+
+              var row = table.insertRow(-1);
+              var td = row.insertCell(-1);
+
+              td.appendChild(document.createTextNode(dateStr(date)));
+
+              var td = row.insertCell(-1);
+              td.appendChild(document.createTextNode(youbi(date)));
+
+              if(starts[i]==null)continue;
+
+              var td = row.insertCell(-1);
+              td.appendChild(document.createTextNode(timeStr(starts[i])));
+
+              var td = row.insertCell(-1);
+              td.appendChild(document.createTextNode(timeStr(ends[i])));
+            }
+
+
+        }
+
+
+        function dateStr(date){
+            var month = date.getMonth()+1;
+            var day = date.getDate();
+
+            return "" + month + "/" + day;
+        }
+
+        function youbi(date){
+          var youbi = date.getDay();
+          return '日月火水木金土'[youbi];
+        }
+
+        function timeStr(date){
+            var hour = date.getHours();
+            var min = date.getMinutes();
+
+            return "" + hour + ":" + ('00'+min).slice(-2);
+        }
+
+        function datetimeStr(date){
+          return dateStr(date) + " " + timeStr(date);
+        }
+
+
+    });
+
+</script>
+</head>
+<body>
+<h1>九工大キャンパス出勤時間抽出ツールの使い方</h1>
+
+Googleロケーション履歴から九工大キャンパス出勤時間を抽出します．
+ロケーション履歴のデータはどこにも送られませんので，安心してご利用下さい．
+
+<ol>
+  <li>ブラウザでGoogleアカウントにログインした状態で，以下のURLにアクセスする．<br/>
+  <a href="https://takeout.google.com/settings/takeout" target="new">https://takeout.google.com/settings/takeout</a></li>
+  <li>[選択解除]をして[ロケーション履歴(Location history)]だけチェックを入れ，[次へ]</li>
+  <li>[アーカイブを作成]→準備画面に遷移し，しばらく待ちます．</li>
+  <li>準備が終わったら，[ダウンロード]（再度パスワードを聞かます．）</li>
+  <li>ダウンロードしたtakeout-*/を解凍すると，以下のファイルが有るはずです．
+    <pre>ロケーション履歴/ロケーション履歴.json</pre></li>
+  <li>このファイルを以下のファイル選択から選択します．</li>
+  <li>するとその下に指定した年・月の職場滞在時間が抽出されます．</li>
+  <li>必要に応じて年・月を切り替えて下さい．</li>
+  <li>それをコピーして，記録簿のExcelに[形式を選択して貼り付け]→[テキスト]で貼り付けます．</li>
+  <li>以上！</li>
+</ol>
+<p>（※深夜は3時までを前日と数えます．ただし月末の深夜は考慮していません！）</p>
+
+<p><input id="file" type="file"/></p>
+<p>
+  <input id="year" type="integer"/>年
+  <input id="month" type="integer"/>月
+</p>
+<p>
+<h2>結果↓</h2>
+    <div id="output">
+      <table id="table"/>
+    </div>
+</p>
+</body>
+</html>
