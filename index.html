@@ -2,6 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset='utf-8'>
+<style><!--
+body {
+  margin: 20px;
+}
+--></style>
 <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 <script>
 
@@ -191,8 +196,9 @@ Googleロケーション履歴からキャンパス出勤時間を抽出しま�
 ロケーション履歴のデータはどこにも送られませんので，安心してご利用下さい．
 
 <h2>事前設定</h2>
+index.html内のcampuses及びmidnight_endを設定してください．
 <ul>
-    <li>index.html内のcampuses及びmidnight_endを設定してください．
+    <li>campusesはキャンパス所在地の緯度・経度のリストです．
       <ul>
           <li>キャンパスの所在地はGoogle Mapで取得できます．キャンパス周辺の地図を表示し，キャンパス敷地の左下と右上でそれぞれ右クリックして「この場所について」を選択すると所在地の緯度経度が表示されます．</li>
           <li>複数のキャンパスを並べるときは，行末の「,」が構文エラーにならないように気を付けて記述してください．</li>
