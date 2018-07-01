@@ -2,28 +2,42 @@
 <html lang="ja">
 <head>
 <meta charset='utf-8'>
+<style><!--
+body {
+  margin: 20px;
+}
+--></style>
 <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 <script>
 
 
     $(function(){
+        //キャンパスの所在地
+        var campuses = [
+            // [latitude_start, longitude_start, latitude_end, longitude_end]
+            // 九工大 若松キャンパス
+            [33.888514, 130.707122, 33.892537, 130.712135],
+            // 九工大 戸畑キャンパス
+            [33.890578, 130.838161, 33.895910, 130.842886]
+            //// 九大 伊都キャンパス
+            //[33.593765, 130.214101, 33.599968, 130.229497]
+            //// 九大 箱崎キャンパス
+            //[33.621334, 130.420607, 33.632155, 130.427581]
+        ];
+        // 前日深夜とみなす境目の時刻（4のときは3:59までが前日）
+        var midnight_end = 4;
 
 
         var newline ="<br/>"
-
-        //キャンパスの所在地
-        var wakamatsu_lat1  = 33888514*10;
-        var wakamatsu_long1 = 130707122*10;
-        var wakamatsu_lat2  = 33892537*10;
-        var wakamatsu_long2 = 130712135*10;
-
-        var tobata_lat1  = 33890578*10;
-        var tobata_long1 = 130838161*10;
-        var tobata_lat2  = 33895910*10;
-        var tobata_long2 = 130842886*10;
-
         var reader;
         var data;
+
+        for (var i=0, len=campuses.length; i<len; ++i){
+            campuses[i][0] *= 1e7;
+            campuses[i][1] *= 1e7;
+            campuses[i][2] *= 1e7;
+            campuses[i][3] *= 1e7;
+        }
 
         reader = new FileReader();
         reader.onload = onLoad;
@@ -50,6 +64,16 @@
             extractJSON();
         }
 
+        function is_inCampus(latitude, longitude){
+            for (var i=0, len=campuses.length; i<len; ++i){
+                // check if out of campus
+                if ( (latitude > campuses[i][0]) && (longitude > campuses[i][1]) &&
+                     (latitude < campuses[i][2]) && (longitude < campuses[i][3]) ){
+                         return true;
+                }
+            }
+            return false;
+        }
 
         //メイン部分
         function extractJSON(){
@@ -85,15 +109,12 @@
               if (month != target_month || year!=target_year) continue;
 
               //if in a campus
-              if ((lat  > wakamatsu_lat1  && lat < wakamatsu_lat2 &&
-                   long > wakamatsu_long1 && long < wakamatsu_long2) ||
-                  (lat  > tobata_lat1  && lat < tobata_lat2 &&
-                   long > tobata_long1 && long < tobata_long2)) {
+              if (is_inCampus(lat, long)){
 
                      //output.innerHTML += year + "/" + month + "/" + day + " " + hour + ":" + ('00'+min).slice(-2) + " " + lat + " " + long + " 出勤"+newline;
 
                      //console.log(i);
-                     if (hour < 4) day -=1;//3時台までは一つ前の日とみなす．
+                     if (hour < midnight_end) day -=1;//midnight_endで設定された時刻までは一つ前の日とみなす．
                      if (day<0) continue; //月はじめは無視．
 
                      d = day - 1
@@ -169,11 +190,24 @@
 </script>
 </head>
 <body>
-<h1>九工大キャンパス出勤時間抽出ツールの使い方</h1>
+<h1>キャンパス出勤時間抽出ツールの使い方</h1>
 
-Googleロケーション履歴から九工大キャンパス出勤時間を抽出します．
+Googleロケーション履歴からキャンパス出勤時間を抽出します．
 ロケーション履歴のデータはどこにも送られませんので，安心してご利用下さい．
 
+<h2>事前設定</h2>
+index.html内のcampuses及びmidnight_endを設定してください．
+<ul>
+    <li>campusesはキャンパス所在地の緯度・経度のリストです．
+      <ul>
+          <li>キャンパスの所在地はGoogle Mapで取得できます．キャンパス周辺の地図を表示し，キャンパス敷地の左下と右上でそれぞれ右クリックして「この場所について」を選択すると所在地の緯度経度が表示されます．</li>
+          <li>複数のキャンパスを並べるときは，行末の「,」が構文エラーにならないように気を付けて記述してください．</li>
+      </ul>
+    </li>
+    <li>midnight_endは前日深夜とみなす境目の時刻です．</li>
+</ul>
+
+<h2>使い方</h2>
 <ol>
   <li>ブラウザでGoogleアカウントにログインした状態で，以下のURLにアクセスする．<br/>
   <a href="https://takeout.google.com/settings/takeout" target="new">https://takeout.google.com/settings/takeout</a></li>
@@ -188,7 +222,7 @@ Googleロケーション履歴から九工大キャンパス出勤時間を抽�
   <li>それをコピーして，記録簿のExcelに[形式を選択して貼り付け]→[テキスト]で貼り付けます．</li>
   <li>以上！</li>
 </ol>
-<p>（※深夜は3時までを前日と数えます．ただし月末の深夜は考慮していません！）</p>
+<p>（※深夜はmidnight_endで設定された時刻までを前日と数えます．ただし月末の深夜は考慮していません！）</p>
 
 <p><input id="file" type="file"/></p>
 <p>
